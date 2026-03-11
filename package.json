@@ -1,6 +1,6 @@
 {
   "name": "hormuz-havoc",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Arcade-style browser game: navigate the Strait of Hormuz and survive!",
   "scripts": {
     "dev": "vite",
