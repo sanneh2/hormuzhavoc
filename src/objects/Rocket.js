@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export default class Rocket extends Phaser.GameObjects.Image {
   constructor(scene, x, y, speed, player, config = {}) {
     super(scene, x, y, 'rocket');

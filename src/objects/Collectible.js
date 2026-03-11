@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export const CollectibleType = {
   BARREL: 'barrel',
   INSURANCE: 'insurance',

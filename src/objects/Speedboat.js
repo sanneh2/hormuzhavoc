@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export default class Speedboat extends Phaser.GameObjects.Image {
   constructor(scene, x, y, speed, player) {
     super(scene, x, y, 'speedboat');

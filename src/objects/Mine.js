@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export default class Mine extends Phaser.GameObjects.Image {
   constructor(scene, x, y, speed, player, config = {}) {
     super(scene, x, y, 'mine');

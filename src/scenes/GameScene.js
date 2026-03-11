@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 import PlayerShip from '../objects/PlayerShip.js';
 import Mine from '../objects/Mine.js';
 import Rocket from '../objects/Rocket.js';

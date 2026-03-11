@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 export const DroneState = {
   WARNING: 'warning',
   EXPLODING: 'exploding',
