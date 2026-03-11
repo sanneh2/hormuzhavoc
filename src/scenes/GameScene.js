@@ -40,11 +40,14 @@ export default class GameScene extends Phaser.Scene {
     this._collectibleInterval = 2200;
     this._quipTimer = 0;
     this._quipInterval = 8000;
+    this._quipActive = false;
     this._slowmoActive = false;
     this._slowmoDuration = 0;
     this._drones = [];
     this._obstacles = [];
     this._collectibles = [];
+    this._birds = [];
+    this._birdTimer = Phaser.Math.Between(8000, 20000);
     this._enemyDeck = [];
     this._laneXs = [96, 168, 240, 312, 384];
     this._rocketCooldownTimer = 0;
@@ -120,7 +123,12 @@ export default class GameScene extends Phaser.Scene {
     this._wakeEmitter.startFollow(this._player, 0, 50);
 
     // ── Sound engine ──────────────────────────────────────────────────────
-    soundManager.startEngine();
+    // Title theme (started in BootScene) plays through the entry animation,
+    // then fades out and the quiet gameplay jingle fades in.
+    this.time.delayedCall(2200, () => {
+      soundManager.stopThemeSong();
+      soundManager.startEngine();
+    });
 
     // ── UI Scene ──────────────────────────────────────────────────────────
     this.scene.launch('UIScene', { gameScene: this });
@@ -269,16 +277,20 @@ export default class GameScene extends Phaser.Scene {
 
   _spawnRocket(W, speed) {
     const difficulty = this._difficultyLevel;
+    // Spawn at a random X that is NOT directly above the player — forces movement
     const playerLane = this._getNearestLaneIndex(this._player ? this._player.x : W / 2);
-    const laneChoices = difficulty === 0 ? [Math.max(0, playerLane - 2), Math.min(this._laneXs.length - 1, playerLane + 2)] : [0, 1, 2, 3, 4];
-    const laneIndex = Phaser.Math.RND.pick(laneChoices);
-    const x = this._getLaneX(laneIndex, 4);
-    const rocket = new Rocket(this, x, -70, speed * Phaser.Math.Clamp(0.8 + difficulty * 0.05, 0.8, 1.05), this._player, {
-      trackTimer: Phaser.Math.Clamp(1180 - difficulty * 55, 780, 1180),
-      trackingGain: Phaser.Math.Clamp(1.05 + difficulty * 0.14, 1.05, 2.7),
-      maxTrackSpeed: Phaser.Math.Clamp(90 + difficulty * 16, 90, 210),
-      approachSpeed: Phaser.Math.Clamp(speed * 0.1, 16, 36),
-      launchDelay: Phaser.Math.Clamp(260 - difficulty * 12, 170, 260),
+    const allLanes = [0, 1, 2, 3, 4];
+    const offsetLanes = allLanes.filter(i => Math.abs(i - playerLane) >= 1);
+    const laneIndex = Phaser.Math.RND.pick(offsetLanes.length ? offsetLanes : allLanes);
+    const x = this._getLaneX(laneIndex, 8);
+
+    const diveSpeed = Phaser.Math.Clamp(190 + difficulty * 22, 190, 370);
+    const rocket = new Rocket(this, x, -60, diveSpeed, this._player, {
+      hoverY:        Phaser.Math.Clamp(100 - difficulty * 4, 68, 100),
+      hoverDuration: Phaser.Math.Clamp(720 - difficulty * 40, 380, 720),
+      approachSpeed: Phaser.Math.Clamp(48 + difficulty * 5, 48, 90),
+      guideDuration: Phaser.Math.Clamp(950 - difficulty * 50, 500, 950),
+      maxGuideSpeed: Phaser.Math.Clamp(140 + difficulty * 18, 140, 300),
     });
     rocket.setDepth(5);
     this._obstacleGroup.add(rocket);
@@ -321,6 +333,32 @@ export default class GameScene extends Phaser.Scene {
       callback: () => {
         if (drone.active && drone.state !== DroneState.DONE) soundManager.playDroneBeep();
       },
+    });
+  }
+
+  // ── Bird flyby ─────────────────────────────────────────────────────────
+  _spawnBird() {
+    const W = this.scale.width;
+    const fromLeft = Math.random() < 0.5;
+    const startX = fromLeft ? -40 : W + 40;
+    const baseY  = Phaser.Math.Between(90, 300);
+    const speed  = Phaser.Math.Between(90, 150); // px/s
+    const scale  = Phaser.Math.FloatBetween(0.7, 1.2);
+
+    const img = this.add.image(startX, baseY, 'bird')
+      .setDepth(3)
+      .setScale(scale)
+      .setFlipX(!fromLeft)
+      .setAlpha(0);
+
+    this.tweens.add({ targets: img, alpha: 0.75, duration: 300 });
+
+    this._birds.push({
+      img,
+      baseY,
+      elapsed: 0,
+      vx: fromLeft ? speed : -speed,
+      endX: fromLeft ? W + 40 : -40,
     });
   }
 
@@ -383,6 +421,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver = true;
     this._wakeEmitter.stop();
+    soundManager.stopThemeSong();
     soundManager.stopEngine();
 
     // Final explosion on player
@@ -456,6 +495,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _showQuip() {
+    if (this._quipActive) return;
+    this._quipActive = true;
     const W = this.scale.width;
     const quip = Phaser.Utils.Array.GetRandom(QUIPS);
     const box = this.add.graphics().setDepth(18);
@@ -475,7 +516,11 @@ export default class GameScene extends Phaser.Scene {
       alpha: 0,
       delay: 2800,
       duration: 600,
-      onComplete: () => { box.destroy(); txt.destroy(); }
+      onComplete: () => {
+        box.destroy();
+        txt.destroy();
+        this._quipActive = false;
+      }
     });
   }
 
@@ -612,6 +657,21 @@ export default class GameScene extends Phaser.Scene {
         d.destroy();
         return false;
       }
+      return true;
+    });
+
+    // ── Bird flyby timer and update ──
+    this._birdTimer -= realDelta;
+    if (this._birdTimer <= 0) {
+      this._spawnBird();
+      this._birdTimer = Phaser.Math.Between(12000, 28000);
+    }
+    this._birds = this._birds.filter(b => {
+      b.elapsed += realDelta;
+      b.img.x += b.vx * (realDelta / 1000);
+      b.img.y  = b.baseY + Math.sin(b.elapsed * 0.004) * 5;
+      const offscreen = b.vx > 0 ? b.img.x > b.endX : b.img.x < b.endX;
+      if (offscreen) { b.img.destroy(); return false; }
       return true;
     });
   }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sanneh2.github.io/hormuzhavoc/sitemap.xml

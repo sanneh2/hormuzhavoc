@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { soundManager } from '../objects/SoundManager.js';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -313,6 +314,18 @@ export default class BootScene extends Phaser.Scene {
     particle.generateTexture('particle', 8, 8);
     particle.destroy();
 
+    // ── Bird (seagull silhouette) ─────────────────────────────────────────
+    const bird = this.make.graphics({ x: 0, y: 0, add: false });
+    bird.fillStyle(0x222222);
+    // Body
+    bird.fillEllipse(20, 8, 10, 5);
+    // Left wing angled upward
+    bird.fillTriangle(15, 8, 0, 2, 10, 11);
+    // Right wing angled upward
+    bird.fillTriangle(25, 8, 40, 2, 30, 11);
+    bird.generateTexture('bird', 40, 16);
+    bird.destroy();
+
     // ── HUD panel texture ─────────────────────────────────────────────────
     const hud = this.make.graphics({ x: 0, y: 0, add: false });
     hud.fillStyle(0x0a1628, 0.92);
@@ -373,6 +386,9 @@ export default class BootScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1
     });
+
+    // Start theme music (AudioContext will resume on first user gesture)
+    soundManager.startThemeSong();
 
     // Start on any input
     this.input.keyboard.once('keydown', () => this.scene.start('GameScene'));

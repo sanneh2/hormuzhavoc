@@ -1,0 +1,17 @@
+{
+  "name": "Hormuz Havoc",
+  "short_name": "Hormuz Havoc",
+  "description": "Arcade-style browser survival game set in the Strait of Hormuz.",
+  "start_url": "/hormuzhavoc/",
+  "scope": "/hormuzhavoc/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "icons": [
+    {
+      "src": "/hormuzhavoc/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
